@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-soully-pink: #ed4266;
+  --color-soully-pink-dark: #d92e55;
+  --color-soully-blush: #fff5f6;
+  --color-soully-ink: #14233d;
+  --color-soully-muted: #657086;
+  --font-heading: "Manrope", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+}
+
+:root { color-scheme: light; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #fff; color: var(--color-soully-ink); font-family: var(--font-body); }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+::selection { background: #ffdbe3; color: #14233d; }
