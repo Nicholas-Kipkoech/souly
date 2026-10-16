@@ -20,3 +20,7 @@ create policy "Users can update their own profile" on public.profiles for update
 create policy "Users can delete their own profile" on public.profiles for delete to authenticated using ((select auth.uid()) = user_id);
 -- IMPORTANT: this select policy is intentionally permissive for a local prototype. Tighten it before launch,
 -- and do not expose email, precise location, moderation data, or other private fields to discovery clients.
+
+
+-- For existing projects, run supabase/discovery-migration.sql separately.
+-- Fresh installs can run this file and then discovery-migration.sql.
