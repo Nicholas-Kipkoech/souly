@@ -12,6 +12,8 @@ import {
   LogOut,
   MessageCircle,
   RotateCcw,
+  UserRound,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -245,6 +247,15 @@ export default function DiscoverPage() {
             >
               <MessageCircle size={17} />
               <span>Messages</span>
+            </Link>
+
+            <Link href="/profile" className="flex items-center gap-2">
+              <UserRound size={20} />
+              <span className="hidden sm:inline">My profile</span>
+            </Link>
+
+            <Link href="/settings" aria-label="Settings" title="Settings">
+              <Settings size={20} />
             </Link>
 
             <button
