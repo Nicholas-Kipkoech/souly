@@ -213,19 +213,6 @@ export default function DiscoverPage() {
         connection_pace: ownProfile.connection_pace,
       });
 
-      const swipedIds = new Set(
-        (swipes ?? []).map((swipe) => swipe.to_user_id),
-      );
-
-      // Also exclude people with whom a match already exists.
-      const matchedIds = new Set<string>();
-
-      for (const match of matches ?? []) {
-        // The matches query only returns IDs, so we use the match's
-        // participants in the separate query below if needed.
-        void match;
-      }
-
       const { data: matchPairs, error: pairsError } = await supabase
         .from("matches")
         .select("user_a, user_b")
@@ -234,38 +221,29 @@ export default function DiscoverPage() {
       if (pairsError) throw pairsError;
 
       const allPeople = ((people ?? []) as Profile[]).filter(
-  (person) => person.user_id !== user.id
-);
+        (person) => person.user_id !== user.id,
+      );
 
-// Build these sets from the database results before filtering.
-const swipedIds = new Set(
-  (swipes ?? []).map((swipe) => swipe.to_user_id)
-);
+      const swipedIds = new Set<string>(
+        (swipes ?? []).map((swipe) => swipe.to_user_id),
+      );
 
-const matchedIds = new Set<string>();
+      const matchedIds = new Set<string>();
 
-for (const match of matchPairs ?? []) {
-  matchedIds.add(
-    match.user_a === user.id ? match.user_b : match.user_a
-  );
-}
+      for (const match of matchPairs ?? []) {
+        matchedIds.add(match.user_a === user.id ? match.user_b : match.user_a);
+      }
 
-// Matched profiles are excluded in every case.
-const unmatchedPeople = allPeople.filter(
-  (person) => !matchedIds.has(person.user_id)
-);
+      // A profile is eligible only if it has never been swiped on
+      // and is not already matched with the current user.
+      const eligiblePeople = allPeople.filter(
+        (person) =>
+          !swipedIds.has(person.user_id) && !matchedIds.has(person.user_id),
+      );
 
-// Prioritize profiles this user has not swiped on.
-const unseenPeople = unmatchedPeople.filter(
-  (person) => !swipedIds.has(person.user_id)
-);
+      setProfiles(eligiblePeople);
+      setMatchCount(matchPairs?.length ?? 0);
 
-// Revisit previously swiped profiles only when needed.
-setProfiles(
-  unseenPeople.length > 0 ? unseenPeople : unmatchedPeople
-);
-
-      setMatchCount(matches?.length ?? 0);
       setLastAction(null);
       setDragX(0);
       dragXRef.current = 0;

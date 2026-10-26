@@ -107,15 +107,13 @@ export function calculateCompatibility(
   );
 
   const factors: { score: number | null; weight: number }[] = [
-  { score: values, weight: WEIGHTS.values },
-  { score: interests, weight: WEIGHTS.interests },
-  { score: communication, weight: WEIGHTS.communication },
-  { score: pace, weight: WEIGHTS.pace },
-];
+    { score: values, weight: WEIGHTS.values },
+    { score: interests, weight: WEIGHTS.interests },
+    { score: communication, weight: WEIGHTS.communication },
+    { score: pace, weight: WEIGHTS.pace },
+  ];
 
-const availableFactors = factors.filter(
-  (factor) => factor.score !== null
-);
+  const availableFactors = factors.filter((factor) => factor.score !== null);
 
   const availableWeight = factors.reduce(
     (total, factor) => total + factor.weight,
@@ -125,8 +123,8 @@ const availableFactors = factors.filter(
   const weightedScore =
     availableWeight === 0
       ? 0
-      : factors.reduce(
-          (total, factor) => total + factor.score * factor.weight,
+      : availableFactors.reduce(
+          (total, factor) => total + (factor.score ?? 0) * factor.weight,
           0,
         ) / availableWeight;
 
