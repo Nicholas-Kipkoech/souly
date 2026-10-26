@@ -106,15 +106,16 @@ export function calculateCompatibility(
     otherUser.connection_pace,
   );
 
-  const factors = [
-    { score: values, weight: WEIGHTS.values },
-    { score: interests, weight: WEIGHTS.interests },
-    { score: communication, weight: WEIGHTS.communication },
-    { score: pace, weight: WEIGHTS.pace },
-  ].filter(
-    (factor): factor is { score: number; weight: number } =>
-      factor.score !== null,
-  );
+  const factors: { score: number | null; weight: number }[] = [
+  { score: values, weight: WEIGHTS.values },
+  { score: interests, weight: WEIGHTS.interests },
+  { score: communication, weight: WEIGHTS.communication },
+  { score: pace, weight: WEIGHTS.pace },
+];
+
+const availableFactors = factors.filter(
+  (factor) => factor.score !== null
+);
 
   const availableWeight = factors.reduce(
     (total, factor) => total + factor.weight,

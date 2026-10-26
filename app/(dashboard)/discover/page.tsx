@@ -233,30 +233,37 @@ export default function DiscoverPage() {
 
       if (pairsError) throw pairsError;
 
-      for (const match of matchPairs ?? []) {
-        matchedIds.add(match.user_a === user.id ? match.user_b : match.user_a);
-      }
-
       const allPeople = ((people ?? []) as Profile[]).filter(
-        (person) => person.user_id !== user.id,
-      );
+  (person) => person.user_id !== user.id
+);
 
-      // Always exclude profiles that are already matched.
-      const unmatchedPeople = allPeople.filter(
-        (person) => !matchedIds.has(person.user_id),
-      );
+// Build these sets from the database results before filtering.
+const swipedIds = new Set(
+  (swipes ?? []).map((swipe) => swipe.to_user_id)
+);
 
-      // Show profiles that haven't been swiped on first.
-      const unseenPeople = unmatchedPeople.filter(
-        (person) => !swipedIds.has(person.user_id),
-      );
+const matchedIds = new Set<string>();
 
-      // If no unseen profiles remain, allow previously swiped,
-      // unmatched profiles to appear again.
-      const nextProfiles =
-        unseenPeople.length > 0 ? unseenPeople : unmatchedPeople;
+for (const match of matchPairs ?? []) {
+  matchedIds.add(
+    match.user_a === user.id ? match.user_b : match.user_a
+  );
+}
 
-      setProfiles(nextProfiles);
+// Matched profiles are excluded in every case.
+const unmatchedPeople = allPeople.filter(
+  (person) => !matchedIds.has(person.user_id)
+);
+
+// Prioritize profiles this user has not swiped on.
+const unseenPeople = unmatchedPeople.filter(
+  (person) => !swipedIds.has(person.user_id)
+);
+
+// Revisit previously swiped profiles only when needed.
+setProfiles(
+  unseenPeople.length > 0 ? unseenPeople : unmatchedPeople
+);
 
       setMatchCount(matches?.length ?? 0);
       setLastAction(null);
