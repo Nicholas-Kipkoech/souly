@@ -218,66 +218,6 @@ export default function DiscoverPage() {
 
   return (
     <main className="min-h-screen bg-soully-blush">
-      {/* Header navigation */}
-      <header className="sticky top-0 z-10 border-b border-rose-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="inline-flex shrink-0 items-center gap-2 text-xl font-extrabold text-soully-pink"
-          >
-            <Heart fill="currentColor" />
-            Soully
-          </Link>
-
-          <nav
-            className="flex items-center gap-1 sm:gap-3"
-            aria-label="Account navigation"
-          >
-            <Link
-              href="/profile/setup"
-              className="rounded-full px-2 py-2 text-sm font-bold text-slate-600 hover:bg-rose-50 hover:text-soully-pink sm:px-3"
-            >
-              My profile
-            </Link>
-
-            {/* NEW: Messages link */}
-            <Link
-              href="/messages"
-              className="inline-flex items-center gap-2 rounded-full bg-soully-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-soully-pink-dark sm:px-4"
-            >
-              <MessageCircle size={17} />
-              <span>Messages</span>
-            </Link>
-
-            <Link href="/profile" className="flex items-center gap-2">
-              <UserRound size={20} />
-              <span className="hidden sm:inline">My profile</span>
-            </Link>
-
-            <Link href="/settings" aria-label="Settings" title="Settings">
-              <Settings size={20} />
-            </Link>
-
-            <button
-              onClick={() => setShowMatches(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-2 text-sm font-bold text-soully-pink hover:bg-rose-100"
-            >
-              <Heart size={16} fill="currentColor" />
-              <span className="hidden sm:inline">Matches</span>
-              <span>{matchCount}</span>
-            </button>
-
-            <button
-              onClick={signOut}
-              aria-label="Sign out"
-              className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-            >
-              <LogOut size={18} />
-            </button>
-          </nav>
-        </div>
-      </header>
-
       <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-12">
         <div className="mx-auto w-full max-w-xl">
           <div className="mb-6 flex items-end justify-between gap-4">

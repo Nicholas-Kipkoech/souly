@@ -377,25 +377,6 @@ export default function ProfileSetupPage() {
 
   return (
     <main className="min-h-screen bg-soully-blush px-4 py-6 sm:px-8">
-      <header className="mx-auto flex max-w-3xl items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xl font-extrabold text-soully-pink"
-        >
-          <Heart fill="currentColor" />
-          Soully
-        </Link>
-
-        <button
-          type="button"
-          onClick={signOut}
-          className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:text-soully-pink"
-        >
-          <LogOut size={15} />
-          Sign out
-        </button>
-      </header>
-
       <section className="mx-auto mt-8 max-w-3xl rounded-3xl bg-white p-6 shadow-xl shadow-rose-100/60 sm:mt-12 sm:p-10">
         <span className="text-xs font-extrabold tracking-[.2em] text-soully-pink">
           YOUR SOULLY PROFILE

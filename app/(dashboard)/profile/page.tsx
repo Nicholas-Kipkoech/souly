@@ -110,39 +110,6 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-[#fff7f8] text-slate-800">
-      <header className="sticky top-0 z-20 border-b border-rose-100 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link
-            href="/discover"
-            className="flex items-center gap-2 text-2xl font-black text-rose-500"
-          >
-            <Heart fill="currentColor" /> Soully
-          </Link>
-          <nav className="flex items-center gap-4 text-sm font-semibold">
-            <Link
-              href="/discover"
-              className="hidden items-center gap-1.5 text-slate-500 hover:text-rose-500 sm:flex"
-            >
-              <Compass size={17} /> Discover
-            </Link>
-            <Link
-              href="/messages"
-              aria-label="Messages"
-              className="text-slate-500 hover:text-rose-500"
-            >
-              <MessageCircle size={20} />
-            </Link>
-            <Link
-              href="/settings"
-              aria-label="Settings"
-              className="text-slate-500 hover:text-rose-500"
-            >
-              <Settings size={20} />
-            </Link>
-          </nav>
-        </div>
-      </header>
-
       <section className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>

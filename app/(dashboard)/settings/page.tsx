@@ -138,23 +138,6 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-[#fff7f8] text-slate-800">
-      <header className="border-b border-rose-100 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <Link
-            href="/discover"
-            className="flex items-center gap-2 text-2xl font-black text-rose-500"
-          >
-            <Heart fill="currentColor" /> Soully
-          </Link>
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-rose-500"
-          >
-            <ArrowLeft size={16} /> My profile
-          </Link>
-        </div>
-      </header>
-
       <section className="mx-auto max-w-3xl px-4 py-10">
         <p className="text-xs font-extrabold tracking-[.2em] text-rose-500">
           YOUR ACCOUNT

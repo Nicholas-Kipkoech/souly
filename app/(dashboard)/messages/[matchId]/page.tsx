@@ -1,13 +1,11 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Heart,
   Send,
-  MoreHorizontal,
   ShieldCheck,
   LoaderCircle,
 } from "lucide-react";
@@ -66,7 +64,8 @@ export default function ChatPage() {
   const params = useParams<{ matchId: string }>();
   const matchId = params.matchId;
   const router = useRouter();
-  const supabase = createClient();
+
+  const [supabase] = useState(() => createClient());
 
   const [userId, setUserId] = useState("");
   const [match, setMatch] = useState<MatchRow | null>(null);
@@ -79,15 +78,37 @@ export default function ChatPage() {
   const [error, setError] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
+
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
     null,
   );
+
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const remoteTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
+  const broadcastTyping = useCallback(
+    (isTyping: boolean) => {
+      const channel = typingChannelRef.current;
+
+      if (!channel || !userId) return;
+
+      void channel.send({
+        type: "broadcast",
+        event: "typing",
+        payload: {
+          userId,
+          isTyping,
+        },
+      });
+    },
+    [userId],
+  );
+
   const loadChat = useCallback(async () => {
+    setLoading(true);
     setError("");
 
     try {
@@ -149,18 +170,32 @@ export default function ChatPage() {
       if (profileError) throw profileError;
       if (messageError) throw messageError;
 
-      setPerson((profile as Profile | null) ?? null);
-      setMessages((messageData ?? []) as MessageRow[]);
+      const loadedMessages = (messageData ?? []) as MessageRow[];
 
-      const unreadIds = ((messageData ?? []) as MessageRow[])
+      setPerson((profile as Profile | null) ?? null);
+      setMessages(loadedMessages);
+
+      const unreadIds = loadedMessages
         .filter((message) => message.sender_id !== user.id && !message.read_at)
         .map((message) => message.id);
 
       if (unreadIds.length) {
-        await supabase
+        const { error: readError } = await supabase
           .from("messages")
           .update({ read_at: new Date().toISOString() })
           .in("id", unreadIds);
+
+        if (readError) {
+          console.error("Could not update read receipts:", readError);
+        } else {
+          setMessages((current) =>
+            current.map((message) =>
+              unreadIds.includes(message.id)
+                ? { ...message, read_at: new Date().toISOString() }
+                : message,
+            ),
+          );
+        }
       }
     } catch (e) {
       setError(
@@ -175,7 +210,7 @@ export default function ChatPage() {
     void loadChat();
   }, [loadChat]);
 
-  // Real-time message updates.
+  // Listen for new messages.
   useEffect(() => {
     if (!matchId || !userId) return;
 
@@ -199,14 +234,28 @@ export default function ChatPage() {
           );
 
           if (incoming.sender_id !== userId && !incoming.read_at) {
+            const readAt = new Date().toISOString();
+
             void supabase
               .from("messages")
-              .update({ read_at: new Date().toISOString() })
-              .eq("id", incoming.id);
+              .update({ read_at: readAt })
+              .eq("id", incoming.id)
+              .then(({ error: readError }) => {
+                if (readError) {
+                  console.error("Could not mark message as read:", readError);
+                  return;
+                }
+
+                setMessages((current) =>
+                  current.map((message) =>
+                    message.id === incoming.id
+                      ? { ...message, read_at: readAt }
+                      : message,
+                  ),
+                );
+              });
           }
 
-          // A received message means the other person has finished
-          // typing the message they just sent.
           if (incoming.sender_id !== userId) {
             setOtherTyping(false);
 
@@ -224,7 +273,7 @@ export default function ChatPage() {
     };
   }, [matchId, supabase, userId]);
 
-  // Real-time typing indicator.
+  // Listen for typing events.
   useEffect(() => {
     if (!matchId || !userId) return;
 
@@ -242,8 +291,7 @@ export default function ChatPage() {
 
     channel
       .on("broadcast", { event: "typing" }, ({ payload }) => {
-        if (!active || !payload) return;
-        if (payload.userId === userId) return;
+        if (!active || !payload || payload.userId === userId) return;
 
         const isTyping = payload.isTyping === true;
 
@@ -255,7 +303,6 @@ export default function ChatPage() {
         }
 
         if (isTyping) {
-          // Recover if a stop-typing event is missed.
           remoteTypingTimeoutRef.current = setTimeout(() => {
             setOtherTyping(false);
             remoteTypingTimeoutRef.current = null;
@@ -286,24 +333,10 @@ export default function ChatPage() {
     };
   }, [matchId, supabase, userId]);
 
+  // Scroll to the latest message or typing indicator.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, otherTyping]);
-
-  // Send a lightweight typing event rather than saving typing
-  // updates in the messages database table.
-  function broadcastTyping(isTyping: boolean) {
-    if (!typingChannelRef.current || !userId) return;
-
-    void typingChannelRef.current.send({
-      type: "broadcast",
-      event: "typing",
-      payload: {
-        userId,
-        isTyping,
-      },
-    });
-  }
 
   function handleDraftChange(value: string) {
     setDraft(value);
@@ -345,9 +378,10 @@ export default function ChatPage() {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
 
-      if (!user || user.id !== userId) {
+      if (authError || !user || user.id !== userId) {
         throw new Error("Your session has expired. Please sign in again.");
       }
 
@@ -383,94 +417,72 @@ export default function ChatPage() {
     }
   }
 
+  function handleBack() {
+    router.push("/messages");
+  }
+
   const lastMessageByDay = (index: number) =>
     index === 0 ||
     new Date(messages[index - 1].created_at).toDateString() !==
       new Date(messages[index].created_at).toDateString();
 
   return (
-    <main className="min-h-screen bg-soully-blush px-0 py-0 text-soully-ink sm:px-4 sm:py-6 lg:px-6">
-      <section className="mx-auto flex h-[100dvh] max-w-5xl flex-col overflow-hidden bg-white shadow-xl shadow-rose-100/60 sm:h-[calc(100dvh-3rem)] sm:rounded-[2rem] sm:border sm:border-rose-100">
-        {/* Conversation header */}
-        <header className="flex items-center gap-3 border-b border-rose-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
-          <Link
-            href="/messages"
-            aria-label="Back to messages"
-            className="grid size-10 shrink-0 place-items-center rounded-full text-slate-600 hover:bg-rose-50"
-          >
-            <ArrowLeft size={20} />
-          </Link>
+    <main className="h-[100dvh] overflow-hidden bg-white text-soully-ink sm:min-h-screen sm:h-auto sm:bg-soully-blush sm:px-4 sm:py-6 lg:px-6">
+      <section className="mx-auto flex h-full min-h-0 max-w-5xl flex-col overflow-hidden bg-white sm:h-[calc(100dvh-3rem)] sm:rounded-[2rem] sm:border sm:border-rose-100 sm:shadow-xl sm:shadow-rose-100/60">
+        {/* Safety notice */}
+        <div className="flex shrink-0 items-center justify-center gap-2 border-b border-rose-50 bg-rose-50/50 px-3 py-2.5 text-center text-[10px] text-slate-500 sm:text-xs">
+          <ShieldCheck size={15} className="shrink-0 text-soully-pink" />
+          <span>
+            Be kind, respect boundaries, and protect your personal information.
+          </span>
+        </div>
 
-          <div className="relative shrink-0">
+        {/* Mobile header with back navigation */}
+        <header className="flex shrink-0 items-center gap-3 border-b border-rose-100 bg-white px-4 py-3 sm:hidden">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Back to messages"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-slate-600 transition hover:bg-rose-50 hover:text-soully-pink"
+          >
+            <ArrowLeft size={22} />
+          </button>
+
+          <div className="flex min-w-0 items-center gap-3">
             {person?.photo_url ? (
               <img
                 src={person.photo_url}
                 alt={`${person.display_name}'s profile`}
-                className="size-11 rounded-full border-2 border-white object-cover shadow-sm ring-1 ring-rose-100"
+                className="size-10 shrink-0 rounded-full border border-rose-100 object-cover"
               />
             ) : (
-              <div className="grid size-11 place-items-center rounded-full bg-gradient-to-br from-rose-100 to-orange-100 font-bold text-soully-pink ring-1 ring-rose-100">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-rose-100 to-orange-100 text-sm font-bold text-soully-pink">
                 {initials(person?.display_name ?? "Soully")}
               </div>
             )}
 
-            <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-white bg-emerald-400" />
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-bold text-soully-ink">
+                {person?.display_name ??
+                  (loading ? "Loading chat…" : "Your match")}
+              </h1>
+              <p className="truncate text-xs text-slate-400">
+                {person?.city ?? "Matched on Soully"}
+              </p>
+            </div>
           </div>
-
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate font-heading text-base font-extrabold">
-              {loading
-                ? "Opening conversation…"
-                : (person?.display_name ?? "Conversation")}
-            </h1>
-
-            <p
-              className={`mt-0.5 truncate text-xs ${
-                otherTyping
-                  ? "font-semibold text-soully-pink"
-                  : "text-slate-500"
-              }`}
-            >
-              {otherTyping
-                ? "Typing a message…"
-                : (person?.city ?? "Your Soully match")}
-            </p>
-          </div>
-
-          <div className="hidden items-center gap-1.5 rounded-full bg-rose-50 px-3 py-2 text-xs font-bold text-soully-pink sm:flex">
-            <Heart size={14} fill="currentColor" />
-            Matched on Soully
-          </div>
-
-          <button
-            type="button"
-            title="Safety reminder"
-            onClick={() =>
-              alert(
-                "Keep your personal information private. If you feel uncomfortable, stop replying and use blocking/reporting when available.",
-              )
-            }
-            className="grid size-10 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100"
-          >
-            <MoreHorizontal size={20} />
-          </button>
         </header>
 
-        <div className="flex items-center justify-center gap-2 border-b border-rose-50 bg-rose-50/50 px-4 py-2.5 text-center text-xs text-slate-500">
-          <ShieldCheck size={15} className="text-soully-pink" />
-          Be kind, respect boundaries, and protect your personal information.
-        </div>
-
-        {/* Messages */}
+        {/* Messages: independently scrollable */}
         <section
           aria-label="Messages"
           aria-live="polite"
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-white via-white to-rose-50/30 px-4 py-5 sm:px-8 sm:py-7"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-gradient-to-b from-white via-white to-rose-50/30 px-4 py-5 sm:px-8 sm:py-7"
         >
           {error && (
             <div
               role="alert"
-              className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              className="mx-auto mb-4 max-w-2xl rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
             >
               {error}
             </div>
@@ -482,6 +494,31 @@ export default function ChatPage() {
                 <LoaderCircle className="animate-spin" size={18} />
                 Loading your conversation…
               </span>
+            </div>
+          ) : !match ? (
+            <div className="grid h-full place-items-center px-4 text-center">
+              <div className="max-w-sm">
+                <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-rose-50 text-soully-pink">
+                  <Heart size={25} />
+                </div>
+
+                <h2 className="mt-4 text-lg font-bold">
+                  Conversation unavailable
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  {error || "This conversation could not be found."}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-soully-pink px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-soully-pink-dark"
+                >
+                  <ArrowLeft size={16} />
+                  Back to messages
+                </button>
+              </div>
             </div>
           ) : messages.length ? (
             <div className="mx-auto flex max-w-2xl flex-col gap-2">
@@ -548,7 +585,7 @@ export default function ChatPage() {
                 );
               })}
 
-              {/* Live typing indicator */}
+              {/* Typing indicator */}
               {otherTyping && (
                 <div className="flex items-end gap-2 self-start py-1">
                   {person?.photo_url ? (
@@ -589,7 +626,7 @@ export default function ChatPage() {
               <div ref={bottomRef} />
             </div>
           ) : (
-            <div className="grid h-full place-items-center py-10 text-center">
+            <div className="grid min-h-full place-items-center py-8 text-center">
               <div className="max-w-sm">
                 <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-rose-50 text-soully-pink">
                   <Heart size={29} fill="currentColor" />
@@ -624,12 +661,14 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+
+          <div ref={bottomRef} />
         </section>
 
-        {/* Message composer */}
+        {/* Fixed composer at the bottom of the chat */}
         <form
           onSubmit={sendMessage}
-          className="border-t border-rose-100 bg-white p-3 sm:px-6 sm:py-4"
+          className="shrink-0 border-t border-rose-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4"
         >
           <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] border border-rose-100 bg-slate-50 p-2 transition focus-within:border-rose-300 focus-within:bg-white focus-within:shadow-sm">
             <textarea
@@ -668,7 +707,7 @@ export default function ChatPage() {
           </div>
 
           <div className="mx-auto mt-2 flex max-w-3xl items-center justify-between px-2 text-[10px] text-slate-400">
-            <span>Press Enter to send · Shift + Enter for a new line</span>
+            <span>Enter to send · Shift + Enter for a new line</span>
             <span>{draft.length}/5000</span>
           </div>
         </form>

@@ -179,38 +179,6 @@ export default function MessagesPage() {
 
   return (
     <main className="min-h-screen bg-soully-blush text-soully-ink">
-      <header className="sticky top-0 z-20 border-b border-rose-100/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-xl font-extrabold text-soully-pink"
-          >
-            <Heart fill="currentColor" size={22} /> Soully
-          </Link>
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/discover"
-              className="rounded-full px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50"
-            >
-              Discover
-            </Link>
-            <Link
-              href="/profile/setup"
-              className="rounded-full px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-rose-50"
-            >
-              My profile
-            </Link>
-            <button
-              onClick={signOut}
-              aria-label="Sign out"
-              className="grid size-10 place-items-center rounded-full text-slate-500 hover:bg-slate-100"
-            >
-              <LogOut size={18} />
-            </button>
-          </nav>
-        </div>
-      </header>
-
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-10">
         <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
