@@ -13,13 +13,18 @@ import {
   LogOut,
   Menu,
   X,
+  Bell,
+  Sparkles,
 } from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
+import NotificationBell from "@/components/NotificationBell";
 
 const navigation = [
   { label: "Discover", href: "/discover", icon: Compass },
   { label: "Messages", href: "/messages", icon: MessageCircle },
   { label: "Likes", href: "/likes", icon: ThumbsUp },
+  { label: "Compatibility", href: "/compatibility", icon: Sparkles },
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
@@ -31,7 +36,9 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+
+  // Keep one Supabase client instance across renders.
+  const [supabase] = useState(() => createClient());
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -44,6 +51,7 @@ export default function DashboardLayout({
     if (signingOut) return;
 
     setSigningOut(true);
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -71,20 +79,26 @@ export default function DashboardLayout({
           <span className="grid size-9 place-items-center rounded-xl bg-pink-500 text-white shadow-sm shadow-pink-200">
             <Heart size={20} fill="currentColor" />
           </span>
+
           <span className="text-xl font-black tracking-tight">
             Soully<span className="text-pink-500">.</span>
           </span>
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-          aria-expanded={menuOpen}
-          className="grid size-10 place-items-center rounded-xl hover:bg-rose-50"
-        >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Notification bell on mobile */}
+          <NotificationBell />
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={menuOpen}
+            className="grid size-10 place-items-center rounded-xl transition hover:bg-rose-50"
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile navigation backdrop */}
@@ -103,24 +117,48 @@ export default function DashboardLayout({
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
+        {/* Brand */}
         <Link href="/discover" className="flex items-center gap-3 px-2">
           <span className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-lg shadow-pink-200">
             <Heart size={23} fill="currentColor" />
           </span>
+
           <span>
             <span className="block text-2xl font-black tracking-tight">
               Soully<span className="text-pink-500">.</span>
             </span>
+
             <span className="block text-xs text-slate-400">
               Find your connection
             </span>
           </span>
         </Link>
 
+        {/* Navigation heading */}
         <div className="mb-3 mt-10 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
           Your space
         </div>
 
+        {/* Desktop notifications link */}
+        <Link
+          href="/notifications"
+          onClick={() => setMenuOpen(false)}
+          aria-current={isActive("/notifications") ? "page" : undefined}
+          className={`mb-3 flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition ${
+            isActive("/notifications")
+              ? "bg-pink-500 text-white shadow-lg shadow-pink-100"
+              : "text-slate-500 hover:bg-rose-50 hover:text-pink-600"
+          }`}
+        >
+          <Bell size={19} />
+          <span>Notifications</span>
+
+          {isActive("/notifications") && (
+            <span className="ml-auto size-1.5 rounded-full bg-white" />
+          )}
+        </Link>
+
+        {/* Main navigation */}
         <nav aria-label="Main navigation" className="flex-1 space-y-2">
           {navigation.map(({ label, href, icon: Icon }) => {
             const active = isActive(href);
@@ -139,6 +177,7 @@ export default function DashboardLayout({
               >
                 <Icon size={19} />
                 <span>{label}</span>
+
                 {active && (
                   <span className="ml-auto size-1.5 rounded-full bg-white" />
                 )}
@@ -147,21 +186,25 @@ export default function DashboardLayout({
           })}
         </nav>
 
+        {/* Encouragement card */}
         <div className="mb-5 rounded-2xl bg-gradient-to-br from-rose-50 to-pink-50 p-4">
           <div className="mb-2 flex size-9 items-center justify-center rounded-xl bg-white text-pink-500 shadow-sm">
             <Heart size={18} />
           </div>
+
           <p className="text-sm font-bold">Meaningful connections</p>
+
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Take your time, be yourself, and treat others with kindness.
           </p>
         </div>
 
+        {/* Sign out */}
         <button
           type="button"
           onClick={signOut}
           disabled={signingOut}
-          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <LogOut size={19} />
           {signingOut ? "Signing out…" : "Sign out"}
